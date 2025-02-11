@@ -15,8 +15,11 @@ root.geometry('350x200')
 # adding more items in the menu bar 
 menu = Menu(root)
 item = Menu(menu)
+
 item.add_command(label='New')
+item.add_command(label='Add')
 menu.add_cascade(label='File', menu=item)
+menu.add_cascade(label='Control', menu=item)
 root.config(menu=menu)
 
 # adding a label to the root window
