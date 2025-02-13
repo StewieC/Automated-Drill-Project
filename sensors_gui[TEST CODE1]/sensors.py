@@ -109,3 +109,55 @@ def update_plot():
         except Exception as e:
           print(e)
         #root.update()
+
+# Function to save data to a CSV file with a unique identifier
+def save_data_to_csv(counter):
+    filename = f'datasensors{counter}.csv'
+    with open(filename, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow(['Vibration','Temperature', 'Force'])
+        for data_point in csv_data:
+            csvwriter.writerow(data_point)
+# Start a separate thread to continuously update data and plots
+data_thread = threading.Thread(target=update_plot)
+data_thread.daemon = True
+data_thread.start()
+
+# Function to update the 1st plot
+def update_plot1():
+    with data_lock:
+        lines1.set_xdata(np.arange(0, len(displacement)))
+        lines1.set_ydata(vibration)
+    canvas1.draw()
+
+# Function to update the 2nd plot
+def update_plot2():
+    with data_lock:
+        lines2.set_xdata(np.arange(0, len(force)))
+        lines2.set_ydata(temperature)
+    canvas2.draw()
+
+def updateplots():
+    update_plot1()
+    update_plot2()
+
+
+# Function to send commands to Arduino
+def send_command(command):
+    ser.write(command.encode('utf-8'))
+
+# Function to update the serial connection with selected COM port and baud rate
+def update_serial_connection():
+    selected_com_port = com_port_combo.get()
+    selected_baud_rate = baud_rate_combo.get()
+    
+    global ser
+    try:
+        ser.close()
+        ser = serial.Serial(selected_com_port, int(selected_baud_rate))
+        ser.reset_input_buffer()
+        print(f'Connection on {ser} successful')
+    except serial.SerialException as e:
+        print(f'Error: {e}. Connection on {selected_com_port} not found.')
+    except Exception as e:
+        print(f'An unexpected error occurred: {e}')
