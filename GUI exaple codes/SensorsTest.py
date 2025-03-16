@@ -35,3 +35,33 @@ try:
 except Exception as e:
     print (f'A Theme Error has occurred: {e}')
     dark_mode =  False
+
+
+#theme toggle function
+
+def toggle_dark_mode():
+    global dark_mode
+    dark_mode=not dark_mode
+    update_Theme()
+
+def update_Theme():
+    theme = "dark" if dark_mode else "light"
+    root.configure(background='black' if dark_mode else 'light')
+    ctk.set_appearance_mode(theme)
+    print(f"SWitching to {theme} Mode")
+    switch_1.configure(text='Light Mode' if dark_mode else 'Dark Mode')
+
+
+#start and stop plotting function
+def start_plotting():
+    global is_plotting
+    is_plotting = True
+    thread = threading.Thread(target=update_plot)
+    thread.daemon = True
+    thread.start()
+    ser.reset_input_buffer()
+
+# Function to stop reading data from Arduino
+def stop_plotting():
+    global is_plotting
+    is_plotting = False
