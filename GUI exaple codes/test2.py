@@ -3,9 +3,20 @@ from tkinter import ttk
 import serial
 import serial.tools.list_ports
 import threading
+import numpy as np
 import time
+import csv
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+#variables
+is_plotting = False
+max_data_points = 50
+data_counter = 0  # Counter for unique data files
+csv_data = []  # List to hold the data
+pulses = np.array([])
+
+
 
 # Connect to Arduino (Update this with correct COM port)
 def connect_arduino():
@@ -53,7 +64,7 @@ def toggle_theme():
 def start_plotting():
     global is_plotting
     is_plotting = True
-    thread = threading.Thread(target=update_plot)
+    thread = threading.Thread(target=update_graph)
     thread.daemon = True
     thread.start()
     ser.reset_input_buffer()
@@ -62,7 +73,7 @@ def start_plotting():
 def stop_plotting():
     global is_plotting
     is_plotting = False
-    
+
 # Graph PWM Data (Simulated as random values)
 def update_graph():
     global pwm_values, time_values
@@ -73,6 +84,18 @@ def update_graph():
     ax.set_title("PWM Speed Over Time")
     canvas.draw()
     root.after(1000, update_graph)
+
+
+# Function to save data to a CSV file with a unique identifier
+def save_data_to_csv(counter):
+    filename = f'datapwm{counter}.csv'
+    with open(filename, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow(['PWM'])
+        for data_point in csv_data:
+            csvwriter.writerow(data_point)
+
+
 
 # GUI Setup
 root = tk.Tk()
