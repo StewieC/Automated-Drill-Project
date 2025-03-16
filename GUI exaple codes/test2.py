@@ -49,6 +49,20 @@ def toggle_theme():
     for widget in root.winfo_children():
         widget.configure(bg=theme_color, fg=fg_color)
 
+# start and stop plotting function
+def start_plotting():
+    global is_plotting
+    is_plotting = True
+    thread = threading.Thread(target=update_plot)
+    thread.daemon = True
+    thread.start()
+    ser.reset_input_buffer()
+
+# Function to stop reading data from Arduino
+def stop_plotting():
+    global is_plotting
+    is_plotting = False
+    
 # Graph PWM Data (Simulated as random values)
 def update_graph():
     global pwm_values, time_values
