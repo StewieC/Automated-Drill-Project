@@ -7,6 +7,7 @@ import numpy as np
 import time
 import csv
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import customtkinter as ctk
 import ctypes
@@ -158,39 +159,114 @@ root.title(" Motor Control GUI")
 root.configure(background='light')
 # dark_mode = False
 
-# Serial Port Selection
-port_var = tk.StringVar()
-ports = [port.device for port in serial.tools.list_ports.comports()]
-port_menu = ttk.Combobox(root, textvariable=port_var, values=ports)
-port_menu.pack(pady=5)
-ttk.Button(root, text="Connect", command=connect_arduino).pack(pady=5)
-status_label = tk.Label(root, text="Not Connected", fg="red")
-status_label.pack()
+# serial communication setup 
+ser = serial.Serial()
 
-# DC Motor Speed Control
-tk.Label(root, text="DC Motor Speed:").pack()
-dc_speed_var = tk.IntVar(value=100)
-dc_speed_menu = ttk.Combobox(root, textvariable=dc_speed_var, values=[0, 50, 100, 150, 200, 255])
-dc_speed_menu.pack()
-ttk.Button(root, text="Set Speed", command=set_dc_speed).pack(pady=5)
+# creating gui components
+root.update()
 
-# Stepper Motor Feed Rate
-tk.Label(root, text="Stepper Feed Rate:").pack()
-ttk.Button(root, text="Slow", command=lambda: set_stepper_feed("Slow")).pack()
-ttk.Button(root, text="Fast", command=lambda: set_stepper_feed("Fast")).pack()
+combined_halves = ctk.CTkFrame(root)
+left_half = ctk.CTkFrame(combined_halves)
+right_half = ctk.CTkFrame(combined_halves)
 
-# Stop Button
-ttk.Button(root, text="Emergency Stop", command=stop_machine, style="Red.TButton").pack(pady=10)
+group_1 = ctk.CTkFrame(left_half)
+group_1a = ctk.CTkFrame(group_1)
+group_1b = ctk.CTkFrame(group_1)
 
-# Theme Toggle
-ttk.Button(root, text="Toggle Dark/Light", command=toggle_theme).pack()
+group_2=ctk.CTkFrame(left_half)
+group_2a=ctk.CTkFrame(group_2)
+group_2b=ctk.CTkFrame(group_2)
+group_2c=ctk.CTkFrame(group_2)
+group_2d=ctk.CTkFrame(group_2)
+group_2e=ctk.CTkFrame(group_2)
 
-# Graph Setup
-fig, ax = plt.subplots()
-pwm_values, time_values = [], []
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.get_tk_widget().pack()
-update_graph()
+group_3=ctk.CTkFrame(left_half)
+group_3a=ctk.CTkFrame(group_3)
+group_3b=ctk.CTkFrame(group_3)
 
-# Start GUI Loop
-root.mainloop()
+group_4=ctk.CTkFrame(left_half)
+group_4a=ctk.CTkFrame(group_4)
+
+group_r_1=ctk.CTkFrame(right_half)
+group_r_1a=ctk.CTkFrame(group_r_1)
+group_r_1b=ctk.CTkFrame(group_r_1)
+
+group_r_2=ctk.CTkFrame(right_half)
+
+# setting up the buttons
+start_button = ctk.CTkButton(group_r_1a, text="Start Plot", command=start_plotting)
+stop_button = ctk.CTkButton(group_r_1a, text="Stop Plot", command=stop_plotting)
+pwm_label = ctk.CTkLabel(group_4a, text="PWM: ",font=("Helvetica",15))
+fast_drill_speed_button = ctk.CTkButton(group_3a, text="FAST DRILL SPEED", command=lambda: send_command('fastdrill'))
+slow_drill_speed_button = ctk.CTkButton(group_3b, text="SLOW DRILL SPEED", command=lambda: send_command('slowdrill'))
+stop_machine_button = ctk.CTkButton(group_1a, text="STOP MACHINE", command=lambda: send_command('stopmachine'))
+switch_1 = ctk.CTkSwitch(master=group_1b, text='Light Mode' if dark_mode else 'Dark Mode' , command=toggle_dark_mode)
+
+# Dropdown menu for COM port selection
+com_port_label = ctk.CTkLabel(group_2a, text="Select COM Port:")
+com_port_label.grid(row=1, column=0, sticky="w",padx=10,pady=5)
+com_ports = ["COM1", "COM2", "COM3", "COM4","COM5","COM6",
+             "COM7","COM8","COM9","COM10","COM11","COM12","COM13",
+             "COM14","COM15","COM16","COM17","COM18","COM19","COM20"]
+com_port_combo = ttk.Combobox(group_2b, values=com_ports)
+com_port_combo.set("COM1")  # Set a default COM port
+
+# Dropdown menu for baud rate selection
+baud_rate_label = ctk.CTkLabel(group_2c, text="Select Baud Rate:")
+baud_rate_label.grid(row=2, column=0, sticky="w",padx=10,pady=5)
+baud_rates = ["9600", "115200", "57600", "38400"]  # Replace with your available baud rates
+baud_rate_combo = ttk.Combobox(group_2d, values=baud_rates)
+baud_rate_combo.set("9600")  # Set a default baud rate
+
+# Button to update the serial connection with selected COM port and baud rate
+update_button = ctk.CTkButton(group_2e, text="Update Serial Connection", command=update_serial_connection)
+
+# Matplotlib setup for the third plot
+fig3 = Figure(figsize=(6,4))
+ax3 = fig3.add_subplot(111)
+ax3.set_title("PWM")
+#ax3.set_xlabel("Time")
+ax3.set_ylabel("pwm")
+ax3.grid(True)
+ax3.set_xlim([0, 50])
+ax3.set_ylim([0, 260])
+lines3 = ax3.plot([], [])[0]
+canvas3 = FigureCanvasTkAgg(fig3, master=group_r_2)
+canvas3.draw()
+
+# # Serial Port Selection
+# port_var = tk.StringVar()
+# ports = [port.device for port in serial.tools.list_ports.comports()]
+# port_menu = ttk.Combobox(root, textvariable=port_var, values=ports)
+# port_menu.pack(pady=5)
+# ttk.Button(root, text="Connect", command=connect_arduino).pack(pady=5)
+# status_label = tk.Label(root, text="Not Connected", fg="red")
+# status_label.pack()
+
+# # DC Motor Speed Control
+# tk.Label(root, text="DC Motor Speed:").pack()
+# dc_speed_var = tk.IntVar(value=100)
+# dc_speed_menu = ttk.Combobox(root, textvariable=dc_speed_var, values=[0, 50, 100, 150, 200, 255])
+# dc_speed_menu.pack()
+# ttk.Button(root, text="Set Speed", command=set_dc_speed).pack(pady=5)
+
+# # Stepper Motor Feed Rate
+# tk.Label(root, text="Stepper Feed Rate:").pack()
+# ttk.Button(root, text="Slow", command=lambda: set_stepper_feed("Slow")).pack()
+# ttk.Button(root, text="Fast", command=lambda: set_stepper_feed("Fast")).pack()
+
+# # Stop Button
+# ttk.Button(root, text="Emergency Stop", command=stop_machine, style="Red.TButton").pack(pady=10)
+
+# # Theme Toggle
+# ttk.Button(root, text="Toggle Dark/Light", command=toggle_theme).pack()
+
+# # Graph Setup
+# fig, ax = plt.subplots()
+# pwm_values, time_values = [], []
+# canvas = FigureCanvasTkAgg(fig, master=root)
+# canvas.get_tk_widget().pack()
+# update_graph()
+
+# # Start GUI Loop
+# root.mainloop()
