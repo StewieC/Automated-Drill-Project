@@ -8,6 +8,8 @@ import time
 import csv
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import customtkinter as ctk
+import ctypes
 
 #variables
 is_plotting = False
@@ -16,16 +18,20 @@ data_counter = 0  # Counter for unique data files
 csv_data = []  # List to hold the data
 pulses = np.array([])
 
-
+# Lock for synchronizing access to shared data
+data_lock = threading.Lock()
 
 # Connect to Arduino (Update this with correct COM port)
 def connect_arduino():
+    selected_com_port = com_port_combo.get()
+    selected_baud_rate = baud_rate_combo.get()
+
     global ser
-    port = port_var.get()
     try:
-        ser = serial.Serial(port, 9600, timeout=1)
-        time.sleep(2)  # Allow time for Arduino to reset
-        status_label.config(text=f"Connected to {port}", fg="green")
+        ser.close()
+        ser = serial.Serial(selected_com_port, int(selected_baud_rate))
+        ser.reset_input_buffer() #Allow time for Arduino to reset
+        status_label.config(text=f"Connected to {selected_com_port}", fg="green")
     except Exception as e:
         status_label.config(text=f"Failed to connect: {e}", fg="red")
 
@@ -51,20 +57,27 @@ def stop_machine():
     send_command("stopmachine")
 
 # Toggle Theme
-def toggle_theme():
-    global dark_mode
-    dark_mode = not dark_mode
-    theme_color = "#333" if dark_mode else "#fff"
-    fg_color = "#fff" if dark_mode else "#000"
-    root.configure(bg=theme_color)
-    for widget in root.winfo_children():
-        widget.configure(bg=theme_color, fg=fg_color)
+def toggle_dark_mode():
+    global dark_mode    
+    dark_mode=not dark_mode
+    update_Theme()
+
+
+def update_Theme():
+    theme = "dark" if dark_mode else "light"
+    root.configure(background='black' if dark_mode else 'light')
+    ctk.set_appearance_mode(theme)
+    print(f"SWitching to {theme} Mode")
+    switch_1.configure(text='Light Mode' if dark_mode else 'Dark Mode')
+
+    # update the canvas themes
+    canvas3.get_tk_widget().configure(bg = 'black' if dark_mode else 'white')
 
 # start and stop plotting function
 def start_plotting():
     global is_plotting
     is_plotting = True
-    thread = threading.Thread(target=update_graph)
+    thread = threading.Thread(target=update_plot)
     thread.daemon = True
     thread.start()
     ser.reset_input_buffer()
@@ -74,17 +87,49 @@ def stop_plotting():
     global is_plotting
     is_plotting = False
 
-# Graph PWM Data (Simulated as random values)
-def update_graph():
-    global pwm_values, time_values
-    pwm_values.append(dc_speed_var.get())
-    time_values.append(len(time_values))
-    ax.clear()
-    ax.plot(time_values, pwm_values, marker='o', linestyle='-')
-    ax.set_title("PWM Speed Over Time")
-    canvas.draw()
-    root.after(1000, update_graph)
+# # Graph PWM Data (Simulated as random values)
+# def update_graph():
+#     global pwm_values, time_values
+#     pwm_values.append(dc_speed_var.get())
+#     time_values.append(len(time_values))
+#     ax.clear()
+#     ax.plot(time_values, pwm_values, marker='o', linestyle='-')
+#     ax.set_title("PWM Speed Over Time")
+#     canvas.draw()
+#     root.after(1000, update_graph)
 
+# Function to update the first plot
+def update_plot():
+    global is_plotting,pulses,csv_data, data_counter
+    while is_plotting:
+        try:
+            data = ser.readline().decode('utf-8').strip()
+            comb_data= data.split(',')
+            #if(len(comb_data)==3):
+            
+            pwm = comb_data[0]
+            
+            with data_lock:
+                if len(pulses) < 50:
+                    pulses = np.append(pulses, int(pwm[0:4]))                              
+                else:
+                    pulses[0:49] = pulses[1:50]
+                    pulses[49] = float(pwm[0:4])
+
+            # pwm_label.ure(text=f'PWM: {pwm}')
+            pwm_label.configure(text=f'PWM: {pwm}')
+
+                        # Append data to csv_data
+            csv_data.append([pwm])
+
+            # Check if data exceeds 200 points and save to a new CSV file
+            if len(csv_data) >= max_data_points:
+                save_data_to_csv(data_counter)
+                data_counter += 1
+                csv_data = []
+            root.after(1, update_plot3)
+        except Exception as e:
+          print(e)
 
 # Function to save data to a CSV file with a unique identifier
 def save_data_to_csv(counter):
@@ -95,13 +140,23 @@ def save_data_to_csv(counter):
         for data_point in csv_data:
             csvwriter.writerow(data_point)
 
+# Start a separate thread to continuously update data and plots
+data_thread = threading.Thread(target=update_plot)
+data_thread.daemon = True
+data_thread.start()
 
+# Function to update the third plot
+def update_plot3():
+    with data_lock:
+        lines3.set_xdata(np.arange(0, len(pulses)))
+        lines3.set_ydata(pulses)
+    canvas3.draw()
 
 # GUI Setup
 root = tk.Tk()
-root.title("Arduino Motor Control")
-root.geometry("500x500")
-dark_mode = False
+root.title(" Motor Control GUI")
+root.configure(background='light')
+# dark_mode = False
 
 # Serial Port Selection
 port_var = tk.StringVar()
