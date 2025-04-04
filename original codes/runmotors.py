@@ -64,37 +64,27 @@ def stop_plotting():
 
 # Function to update the first plot
 def update_plot():
-    global is_plotting,pulses,csv_data, data_counter
+    global is_plotting, pulses, csv_data, data_counter
     while is_plotting:
         try:
             data = ser.readline().decode('utf-8').strip()
-            comb_data= data.split(',')
-            #if(len(comb_data)==3):
-            
-            pwm = comb_data[0]
-            
-            with data_lock:
-                if len(pulses) < 50:
-                    pulses = np.append(pulses, int(pwm[0:4]))                              
-                else:
-                    pulses[0:49] = pulses[1:50]
-                    pulses[49] = float(pwm[0:4])
-
-            # pwm_label.ure(text=f'PWM: {pwm}')
-            pwm_label.configure(text=f'PWM: {pwm}')
-
-                        # Append data to csv_data
-            csv_data.append([pwm])
-
-            # Check if data exceeds 200 points and save to a new CSV file
-            if len(csv_data) >= max_data_points:
-                save_data_to_csv(data_counter)
-                data_counter += 1
-                csv_data = []
-            root.after(1, update_plot3)
+            if data.startswith("CURRENT SPEED:"):
+                pwm = int(data.split(":")[1])  # Extract number after "CURRENT SPEED:"
+                with data_lock:
+                    if len(pulses) < 50:
+                        pulses = np.append(pulses, pwm)
+                    else:
+                        pulses[0:49] = pulses[1:50]
+                        pulses[49] = pwm
+                pwm_label.configure(text=f'PWM: {pwm}')
+                csv_data.append([pwm])
+                if len(csv_data) >= max_data_points:
+                    save_data_to_csv(data_counter)
+                    data_counter += 1
+                    csv_data = []
+                root.after(1, update_plot3)
         except Exception as e:
-          print(e)
-        #root.update()
+            print(f"Error in update_plot: {e}")        #root.update()
 
 # Function to save data to a CSV file with a unique identifier
 def save_data_to_csv(counter):
@@ -106,10 +96,10 @@ def save_data_to_csv(counter):
             csvwriter.writerow(data_point)
 
 
-# Start a separate thread to continuously update data and plots
-data_thread = threading.Thread(target=update_plot)
-data_thread.daemon = True
-data_thread.start()
+# # Start a separate thread to continuously update data and plots
+# data_thread = threading.Thread(target=update_plot)
+# data_thread.daemon = True
+# data_thread.start()
 
 # Function to update the third plot
 def update_plot3():
@@ -129,10 +119,12 @@ def update_serial_connection():
     
     global ser
     try:
-        ser.close()
+        if ser.is_open:
+            ser.close()
         ser = serial.Serial(selected_com_port, int(selected_baud_rate))
         ser.reset_input_buffer()
-        print(f'Connection on {ser} successful')
+        ser.write("Python Ready\n".encode('utf-8'))  # Send the handshake
+        print(f'Connection on {selected_com_port} at {selected_baud_rate} successful')
     except serial.SerialException as e:
         print(f'Error: {e}. Connection on {selected_com_port} not found.')
     except Exception as e:
@@ -144,8 +136,9 @@ root.title("MOTOR CONTROL GUI:          ONE AXIS AUTOMATED DRILL")
 root.configure(background='lightblue')
 
 # Serial communication setup
-ser = serial.Serial()  # Initialize with default values
-#ser.reset_input_buffer()
+# Serial communication setup
+ser = serial.Serial('COM1', 9600, timeout=1)  # Default values, adjust to your setup
+ser.reset_input_buffer()
 
 # Create GUI components
 root.update()
