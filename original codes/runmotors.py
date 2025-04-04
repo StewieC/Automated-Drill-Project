@@ -110,7 +110,12 @@ def update_plot3():
 
 # Function to send commands to Arduino
 def send_command(command):
-    ser.write(command.encode('utf-8'))
+    global ser
+    if ser is not None and ser.is_open:
+        ser.write(command.encode('utf-8'))
+        print(f"Sent command: {command}")
+    else:
+        print("Serial port not initialized. Please update serial connection.")
 
 # Function to update the serial connection with selected COM port and baud rate
 def update_serial_connection():
@@ -137,7 +142,7 @@ root.configure(background='lightblue')
 
 # Serial communication setup
 # Serial communication setup
-ser = serial.Serial('COM1', 9600, timeout=1)  # Default values, adjust to your setup
+ser = serial.Serial('COM6', 9600, timeout=1)  # Default values, adjust to your setup
 ser.reset_input_buffer()
 
 # Create GUI components
