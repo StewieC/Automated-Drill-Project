@@ -41,6 +41,8 @@ def update_Theme():
     ctk.set_appearance_mode(theme)
     switch_1.configure(text='Light Mode' if dark_mode else 'Dark Mode')
 
+
+# FUNCTION TO START PLOTTING
 def start_plotting():
     global is_plotting
     is_plotting = True
@@ -49,6 +51,7 @@ def start_plotting():
     thread.start()
     ser.reset_input_buffer()
 
+# FUNCTION TO STOP PLOTTING
 def stop_plotting():
     global is_plotting
     is_plotting = False
