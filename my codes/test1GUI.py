@@ -87,7 +87,7 @@ step_speed_button = ctk.CTkButton(frame, text="Set Step Speed", command=lambda: 
 
 dc_speed_label = ctk.CTkLabel(frame, text="DC Speed: 0")
 status_label = ctk.CTkLabel(frame, text="Status: Stopped")
-
+uu
 com_port_label.pack(pady=5)
 com_port_combo.pack(pady=5)
 baud_rate_label.pack(pady=5)
