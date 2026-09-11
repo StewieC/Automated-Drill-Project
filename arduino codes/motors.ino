@@ -1,4 +1,4 @@
-explain this arduino code in details breaking down every part and giving detailed explanations of its functionality
+
 
 // Pin definitions
 const int limitSwitchPin = 2;
